@@ -99,6 +99,7 @@ router.get("/:username",checkAuth,async (req,res,next)=>{
             email:user.email,
             name:user.name,
             codeforces:user.codeforces,
+            leetcode:user.leetcode,
         }
        // console.log(userDetails);
         
@@ -113,7 +114,7 @@ router.get("/:username",checkAuth,async (req,res,next)=>{
 });
 
 router.put('/update', checkAuth, async (req, res) => {
-  const { name, email, codeforces } = req.body;
+  const { name, email, codeforces, leetcode } = req.body;
   const userId = req.user._id;
 
   try {
@@ -121,6 +122,7 @@ router.put('/update', checkAuth, async (req, res) => {
     if (name) updateFields.name = name;
     if (email) updateFields.email = email;
     if (codeforces) updateFields.codeforces = codeforces;
+    if (leetcode) updateFields.leetcode = leetcode; // ✅ Add leetcode
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateFields, {
       new: true,

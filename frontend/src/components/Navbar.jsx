@@ -21,7 +21,7 @@ function Navbar({ loginPage }) {
           onClick={() => navigate("/")}
           className="text-3xl font-bold text-indigo-700 font-serif cursor-pointer"
         >
-          Problemzz
+          DailyDrill
         </div>
 
         {/* Desktop Nav */}

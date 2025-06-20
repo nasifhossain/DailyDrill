@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
+
 const BACKEND_URL = "http://localhost:3000";
 
 const topicMap = {
@@ -24,6 +25,7 @@ const Solved = () => {
     difficulty: "Easy",
     link: "",
   });
+  const [syncStatus, setSyncStatus] = useState("");
 
   const fetchSolved = async () => {
     try {
@@ -62,7 +64,6 @@ const Solved = () => {
       }
 
       stats.dailyStreak = streak;
-
       setStats(stats);
       setLoading(false);
     } catch (err) {
@@ -85,7 +86,7 @@ const Solved = () => {
         solvedAt: new Date().toISOString(),
       };
 
-      const res = await axios.post(`${BACKEND_URL}/solved/add`, payload, {
+      await axios.post(`${BACKEND_URL}/solved/add`, payload, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -104,12 +105,53 @@ const Solved = () => {
     }
   };
 
+  const syncLeetCode = async () => {
+    setSyncStatus("syncingLeetcode");
+    try {
+      await axios.post(`${BACKEND_URL}/solved/sync-leetcode`, null, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      fetchSolved();
+      setSyncStatus("successLeetcode");
+    } catch (err) {
+      console.error("Error syncing LeetCode:", err);
+      setSyncStatus("errorLeetcode");
+    }
+  };
+
+  const syncCodeforces = () => {
+    setSyncStatus("Starting Codeforces sync...");
+    const eventSource = new EventSource(
+      `${BACKEND_URL}/solved/sync-codeforces-stream?token=${localStorage.getItem("token")}`
+    );
+
+    eventSource.onmessage = (event) => {
+      const msg = event.data;
+      if (msg === "DONE") {
+        setSyncStatus("successCodeforces");
+        fetchSolved();
+        eventSource.close();
+      } else {
+        setSyncStatus(msg);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.error("SSE error:", err);
+      setSyncStatus("errorCodeforces");
+      eventSource.close();
+    };
+  };
+
   const formatDate = (iso) =>
     new Date(iso).toLocaleDateString(undefined, {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
+
   const formatTime = (iso) =>
     new Date(iso).toLocaleTimeString([], {
       hour: "2-digit",
@@ -121,9 +163,46 @@ const Solved = () => {
       <Navbar />
       <main className="bg-gradient-to-b from-indigo-50 to-white min-h-screen py-10 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-4xl font-extrabold text-indigo-700 mb-8 tracking-wide drop-shadow-sm">
-            Solved Questions
-          </h1>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+            <h1 className="text-4xl font-extrabold text-indigo-700 tracking-wide drop-shadow-sm">
+              Solved Questions
+            </h1>
+
+            <div className="flex gap-4">
+              <button
+                onClick={syncLeetCode}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition"
+              >
+                {syncStatus === "syncingLeetcode"
+                  ? "Syncing LeetCode..."
+                  : "Sync LeetCode"}
+              </button>
+              <button
+                onClick={syncCodeforces}
+                className="bg-gray-700 hover:bg-gray-800 text-white font-medium py-2 px-4 rounded transition"
+              >
+                Sync Codeforces
+              </button>
+            </div>
+          </div>
+
+          {syncStatus && (
+            <p
+              className={`mb-4 font-medium ${
+                syncStatus.startsWith("success")
+                  ? "text-green-600"
+                  : syncStatus.startsWith("error")
+                  ? "text-red-600"
+                  : "text-gray-700"
+              }`}
+            >
+              {syncStatus.startsWith("success")
+                ? "Sync successful!"
+                : syncStatus.startsWith("error")
+                ? "Sync failed."
+                : syncStatus}
+            </p>
+          )}
 
           {/* Add Solved Question Form */}
           <form
@@ -138,60 +217,51 @@ const Solved = () => {
               onChange={(e) =>
                 setNewQn({ ...newQn, questionName: e.target.value })
               }
-              className="border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 rounded-md p-3 text-gray-700 shadow-sm transition"
+              className="border border-gray-300 rounded-md p-3 text-gray-700"
             />
-
-            {/* Topic Dropdown */}
             <select
               value={newQn.topic}
               onChange={(e) =>
                 setNewQn({ ...newQn, topic: e.target.value, subtopic: "" })
               }
-              className="border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 rounded-md p-3 text-gray-700 shadow-sm transition"
+              className="border border-gray-300 rounded-md p-3 text-gray-700"
             >
               {Object.keys(topicMap).map((topic) => (
                 <option key={topic}>{topic}</option>
               ))}
             </select>
-
-            {/* Subtopic Dropdown */}
             <select
               value={newQn.subtopic}
               onChange={(e) => setNewQn({ ...newQn, subtopic: e.target.value })}
               disabled={topicMap[newQn.topic]?.length === 0}
-              className={`border border-gray-300 rounded-md p-3 shadow-sm transition focus:ring-indigo-500 focus:border-indigo-500 ${
-                topicMap[newQn.topic]?.length === 0
-                  ? "bg-gray-100 cursor-not-allowed text-gray-400"
-                  : "text-gray-700"
-              }`}
+              className="border border-gray-300 rounded-md p-3 text-gray-700"
             >
               <option value="">None</option>
               {topicMap[newQn.topic]?.map((sub) => (
                 <option key={sub}>{sub}</option>
               ))}
             </select>
-
             <select
               value={newQn.difficulty}
-              onChange={(e) => setNewQn({ ...newQn, difficulty: e.target.value })}
-              className="border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 rounded-md p-3 text-gray-700 shadow-sm transition"
+              onChange={(e) =>
+                setNewQn({ ...newQn, difficulty: e.target.value })
+              }
+              className="border border-gray-300 rounded-md p-3 text-gray-700"
             >
               <option>Easy</option>
               <option>Medium</option>
               <option>Hard</option>
             </select>
-
             <input
               type="url"
               placeholder="Link to problem (optional)"
               value={newQn.link}
               onChange={(e) => setNewQn({ ...newQn, link: e.target.value })}
-              className="border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 rounded-md p-3 col-span-full text-gray-700 shadow-sm transition"
+              className="border border-gray-300 rounded-md p-3 col-span-full text-gray-700"
             />
-
             <button
               type="submit"
-              className="col-span-full bg-indigo-600 text-white font-semibold rounded-md py-3 hover:bg-indigo-700 transition-shadow shadow-md hover:shadow-lg"
+              className="col-span-full bg-indigo-600 text-white font-semibold rounded-md py-3 hover:bg-indigo-700"
             >
               Add Solved Question
             </button>
@@ -199,7 +269,9 @@ const Solved = () => {
 
           {/* Stats Section */}
           {loading ? (
-            <div className="text-center text-gray-600 text-lg py-20">Loading...</div>
+            <div className="text-center text-gray-600 text-lg py-20">
+              Loading...
+            </div>
           ) : solvedQuestions.length === 0 ? (
             <div className="text-center text-gray-500 text-lg py-20">
               You haven't solved any questions yet.
@@ -207,24 +279,24 @@ const Solved = () => {
           ) : (
             <>
               <section className="mb-10 grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div className="bg-indigo-100 border border-indigo-300 p-6 rounded-xl shadow hover:shadow-lg transition">
-                  <p className="text-sm font-medium text-indigo-700 uppercase tracking-wide">
+                <div className="bg-indigo-100 p-6 rounded-xl shadow">
+                  <p className="text-sm font-medium text-indigo-700">
                     Total Solved
                   </p>
                   <p className="mt-2 text-4xl font-extrabold text-indigo-900">
                     {stats.totalSolved}
                   </p>
                 </div>
-                <div className="bg-yellow-100 border border-yellow-300 p-6 rounded-xl shadow hover:shadow-lg transition">
-                  <p className="text-sm font-medium text-yellow-700 uppercase tracking-wide">
+                <div className="bg-yellow-100 p-6 rounded-xl shadow">
+                  <p className="text-sm font-medium text-yellow-700">
                     Current Streak
                   </p>
                   <p className="mt-2 text-4xl font-extrabold text-yellow-900">
                     {stats.dailyStreak} days
                   </p>
                 </div>
-                <div className="bg-green-100 border border-green-300 p-6 rounded-xl shadow hover:shadow-lg transition">
-                  <p className="text-sm font-medium text-green-700 uppercase tracking-wide">
+                <div className="bg-green-100 p-6 rounded-xl shadow">
+                  <p className="text-sm font-medium text-green-700">
                     Topics Mastered
                   </p>
                   <p className="mt-2 text-4xl font-extrabold text-green-900">
@@ -234,64 +306,66 @@ const Solved = () => {
               </section>
 
               {/* Solved Questions Table */}
-              <section className="overflow-x-auto rounded-xl shadow-lg border border-gray-200 bg-white">
-                <table className="min-w-full divide-y divide-gray-200 table-auto">
+              <section className="overflow-x-auto rounded-xl shadow-lg border bg-white">
+                <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-indigo-50">
                     <tr>
-                      {[
-                        "Question",
-                        "Topic",
-                        "Subtopic",
-                        "Difficulty",
-                        "Date",
-                        "Time",
-                        "Link",
-                      ].map((heading) => (
-                        <th
-                          key={heading}
-                          className="px-6 py-3 text-left text-xs font-semibold text-indigo-600 uppercase tracking-wider select-none"
-                        >
-                          {heading}
-                        </th>
-                      ))}
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-indigo-600">
+                        Question
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-indigo-600">
+                        Topic
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-indigo-600">
+                        Subtopic
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-indigo-600">
+                        Difficulty
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-indigo-600">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-indigo-600">
+                        Time
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-indigo-600">
+                        Link
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {solvedQuestions.map((q, index) => (
-                      <tr
-                        key={index}
-                        className="hover:bg-indigo-50 cursor-default transition"
-                      >
-                        <td className="px-6 py-3 whitespace-nowrap text-gray-800 font-medium max-w-xs truncate" title={q.questionName}>
-                          {q.questionName}
+                    {solvedQuestions.map((q, i) => (
+                      <tr key={i} className="hover:bg-indigo-50 transition">
+                        <td className="px-6 py-3">{q.questionName}</td>
+                        <td className="px-6 py-3">{q.topic}</td>
+                        <td className="px-6 py-3">{q.subtopic || "-"}</td>
+                        <td className="px-6 py-3">
+                          <span
+                            className={`font-semibold ${
+                              q.difficulty === "Easy"
+                                ? "text-green-600"
+                                : q.difficulty === "Medium"
+                                ? "text-yellow-600"
+                                : "text-red-600"
+                            }`}
+                          >
+                            {q.difficulty}
+                          </span>
                         </td>
-                        <td className="px-6 py-3 whitespace-nowrap text-gray-700">{q.topic}</td>
-                        <td className="px-6 py-3 whitespace-nowrap text-gray-600 italic">{q.subtopic || "-"}</td>
-                        <td
-                          className={`px-6 py-3 whitespace-nowrap font-semibold ${
-                            q.difficulty === "Easy"
-                              ? "text-green-600"
-                              : q.difficulty === "Medium"
-                              ? "text-yellow-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {q.difficulty}
-                        </td>
-                        <td className="px-6 py-3 whitespace-nowrap text-gray-700">{formatDate(q.solvedAt)}</td>
-                        <td className="px-6 py-3 whitespace-nowrap text-gray-700">{formatTime(q.solvedAt)}</td>
-                        <td className="px-6 py-3 whitespace-nowrap">
+                        <td className="px-6 py-3">{formatDate(q.solvedAt)}</td>
+                        <td className="px-6 py-3">{formatTime(q.solvedAt)}</td>
+                        <td className="px-6 py-3">
                           {q.link ? (
                             <a
                               href={q.link}
                               target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-indigo-600 underline hover:text-indigo-800 transition"
+                              rel="noreferrer"
+                              className="text-indigo-600 underline"
                             >
                               View
                             </a>
                           ) : (
-                            <span className="text-gray-400 select-none">—</span>
+                            "—"
                           )}
                         </td>
                       </tr>

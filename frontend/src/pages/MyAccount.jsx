@@ -22,18 +22,16 @@ function MyAccount() {
 
     axios
       .get(`${BACKEND_URI}/user/${username}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}`},
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       })
       .then((res) => {
         const user = res.data.userDetails;
-        console.log(res);
-        
-        Object.keys(user).forEach((key) => {if(key)setValue(key, user[key])});
+        Object.keys(user).forEach((key) => {
+          if (key) setValue(key, user[key]);
+        });
       })
       .catch((err) => {
         setError(err.response?.data?.error || "Failed to load user data.");
-        console.log(err);
-        
       })
       .finally(() => setLoading(false));
   }, [username, navigate, setValue]);
@@ -107,6 +105,15 @@ function MyAccount() {
               {...register("codeforces")}
               className="w-full border px-4 py-2 rounded-md"
               placeholder="e.g., tourist"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">LeetCode Handle</label>
+            <input
+              {...register("leetcode")}
+              className="w-full border px-4 py-2 rounded-md"
+              placeholder="e.g., grinder69"
             />
           </div>
 

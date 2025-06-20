@@ -1,17 +1,24 @@
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 const JWT_SECRET = process.env.JWT_SECRET;
 const User = require("../schema/User");
 
 module.exports = async function checkAuth(req, res, next) {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.status(401).json({ error: "No token provided" });
+  // Get token from Authorization header or query string
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith("Bearer ")
+    ? authHeader.split(" ")[1]
+    : req.query.token;
+
+  if (!token) {
+    return res.status(401).json({ error: "No token provided" });
+  }
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(decoded.id); // Use ID in payload
+    const user = await User.findById(decoded.id);
     if (!user) throw new Error("User not found");
 
-    req.user = user; // Attach full user or just userId
+    req.user = user; // Attach user for downstream use
     next();
   } catch (err) {
     return res.status(401).json({ error: "Invalid token" });
