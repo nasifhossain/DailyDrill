@@ -24,7 +24,7 @@ const Home = () => {
   useEffect(() => {
     const fetchRecommendations = async () => {
       try {
-        const res = await axios.get("http://localhost:3000/solved/recommend", {
+        const res = await axios.get("https://dailydrill-dl2k.onrender.com/solved/recommend", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },

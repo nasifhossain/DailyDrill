@@ -3,7 +3,7 @@ import axios from "axios";
 import Navbar from "../components/Navbar";
 import { Check, X } from "lucide-react"; // Icons for status
 
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = "https://dailydrill-dl2k.onrender.com";
 
 const Recommended = () => {
   const [recommended, setRecommended] = useState([]);

@@ -4,7 +4,7 @@ import Navbar from "../components/Navbar";
 import { User, Lock } from "lucide-react";
 import axios from "axios";
 
-const BACKEND_URI = "http://localhost:3000";
+const BACKEND_URI = "https://dailydrill-dl2k.onrender.com";
 
 const Login = () => {
   const [serverError, setServerError] = useState("");

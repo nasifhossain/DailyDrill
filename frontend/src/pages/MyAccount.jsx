@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import Navbar from "../components/Navbar";
 
-const BACKEND_URI = "http://localhost:3000";
+const BACKEND_URI = "https://dailydrill-dl2k.onrender.com";
 
 function MyAccount() {
   const { username } = useParams();

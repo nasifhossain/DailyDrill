@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
 
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = "https://dailydrill-dl2k.onrender.com";
 
 const topicMap = {
   Arrays: ["Prefix Sum", "Sliding Window", "Two Pointers"],
