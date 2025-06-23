@@ -38,7 +38,7 @@ const Recommended = () => {
             Recommended Questions
           </h1>
           <p className="text-gray-500 text-sm mb-8">
-            Here are your <span className="font-semibold text-purple-600">daily 5 personalized recommendations</span>.
+            Here are your <span className="font-semibold text-purple-600">daily 10 personalized recommendations</span>.
           </p>
 
           {loading ? (

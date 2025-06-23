@@ -1,13 +1,50 @@
+import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import { Flame, Star, Target, TrendingUp, Users } from "lucide-react";
+import axios from "axios";
+
+// Feature card component
+const FeatureCard = ({ icon, title, desc }) => (
+  <div className="bg-white p-6 rounded-lg shadow border hover:shadow-md transition">
+    <div className="mb-4">{icon}</div>
+    <h3 className="font-semibold text-lg text-gray-800 mb-1">{title}</h3>
+    <p className="text-sm text-gray-600">{desc}</p>
+  </div>
+);
 
 const Home = () => {
-  // Placeholder recommended problems
-  const recommendedProblems = [
+  const fallbackProblems = [
     { id: 1, title: "Two Sum", difficulty: "Easy" },
     { id: 2, title: "Longest Substring Without Repeating Characters", difficulty: "Medium" },
     { id: 3, title: "Median of Two Sorted Arrays", difficulty: "Hard" },
   ];
+
+  const [recommendedProblems, setRecommendedProblems] = useState(fallbackProblems);
+
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      try {
+        const res = await axios.get("http://localhost:3000/solved/recommend", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+
+        const recommended = res.data.recommended.slice(0, 3).map((q, index) => ({
+          id: index + 1,
+          title: q.questionName,
+          difficulty: q.difficulty,
+        }));
+
+        setRecommendedProblems(recommended);
+      } catch (err) {
+        console.error("Failed to fetch recommended problems:", err);
+        setRecommendedProblems(fallbackProblems); // fallback on error
+      }
+    };
+
+    fetchRecommendations();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white to-gray-100 flex flex-col">
@@ -18,6 +55,7 @@ const Home = () => {
         <h1 className="text-4xl font-bold mb-2">Welcome to the DSA Portal</h1>
         <p className="text-lg">Sharpen your skills, track progress, and crack coding interviews with ease.</p>
       </section>
+
       {/* Main Content */}
       <main className="flex-1 w-full max-w-6xl mx-auto p-6 space-y-12">
         {/* Recommended Problems */}
@@ -33,7 +71,15 @@ const Home = () => {
                 className="bg-white p-4 rounded-lg shadow hover:shadow-md transition border"
               >
                 <h3 className="font-medium text-gray-800">{prob.title}</h3>
-                <p className={`text-sm mt-1 ${prob.difficulty === "Easy" ? "text-green-500" : prob.difficulty === "Medium" ? "text-yellow-500" : "text-red-500"}`}>
+                <p
+                  className={`text-sm mt-1 ${
+                    prob.difficulty === "Easy"
+                      ? "text-green-500"
+                      : prob.difficulty === "Medium"
+                      ? "text-yellow-500"
+                      : "text-red-500"
+                  }`}
+                >
                   {prob.difficulty}
                 </p>
               </div>
@@ -93,14 +139,5 @@ const Home = () => {
     </div>
   );
 };
-
-// Feature card component
-const FeatureCard = ({ icon, title, desc }) => (
-  <div className="bg-white p-6 rounded-lg shadow border hover:shadow-md transition">
-    <div className="mb-4">{icon}</div>
-    <h3 className="font-semibold text-lg text-gray-800 mb-1">{title}</h3>
-    <p className="text-sm text-gray-600">{desc}</p>
-  </div>
-);
 
 export default Home;
